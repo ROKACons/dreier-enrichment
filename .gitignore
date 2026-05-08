@@ -1,0 +1,30 @@
+# API Keys & Secrets – NIEMALS in Git!
+.env
+*.env
+.env.*
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+venv/
+.venv/
+env/
+
+# Logs
+*.log
+dreier_enrichment.log
+
+# Excel Outputs
+Enrichment_*.xlsx
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
