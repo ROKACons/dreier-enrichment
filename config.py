@@ -21,6 +21,10 @@ PERPLEXITY_KEY   = _get("PERPLEXITY_KEY")
 ANTHROPIC_KEY    = _get("ANTHROPIC_KEY")
 GOOGLE_SHEETS_ID = _get("GOOGLE_SHEETS_ID")
 
+# ZEFIX (offizielle API – Basic Auth)
+ZEFIX_USER = _get("ZEFIX_USER")
+ZEFIX_PASS = _get("ZEFIX_PASS")
+
 SMTP_SERVER = _get("SMTP_SERVER", "smtp.office365.com")
 SMTP_PORT   = int(_get("SMTP_PORT", "587"))
 SMTP_USER   = _get("SMTP_USER")
