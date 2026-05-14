@@ -16,33 +16,39 @@ st.set_page_config(
     layout="wide",
 )
 
-# ─── Passwortschutz ───────────────────────────────────────────────────────────
-def _check_password() -> bool:
-    """Einfacher Passwortschutz. Passwort kommt aus st.secrets oder Umgebungsvariable."""
-    # Passwort aus Streamlit Secrets (Cloud) oder .env (lokal)
+# ─── Login (Username + Passwort) ──────────────────────────────────────────────
+# Credentials aus st.secrets["auth"] (Streamlit Cloud) oder Umgebungsvariablen (lokal).
+def _check_login() -> bool:
     try:
-        correct_pw = st.secrets["APP_PASSWORD"]
+        cfg = st.secrets["auth"]
+        correct_user = cfg.get("username", "")
+        correct_pw   = cfg.get("password", "")
+        display_name = cfg.get("name", correct_user)
     except Exception:
-        correct_pw = os.getenv("APP_PASSWORD", "")
+        correct_user = os.getenv("APP_USERNAME", "")
+        correct_pw   = os.getenv("APP_PASSWORD", "")
+        display_name = os.getenv("APP_DISPLAY_NAME", correct_user)
 
-    if not correct_pw:
-        return True  # Kein Passwort konfiguriert → offen (nur lokal)
+    if not (correct_user and correct_pw):
+        return True
 
     if st.session_state.get("authenticated"):
         return True
 
     st.markdown("## 🔐 Anmeldung erforderlich")
     st.caption("DreierFashion4You – Firmen Enrichment | powered by ROKA Consulting")
-    pw = st.text_input("Passwort", type="password", key="login_pw")
+    user = st.text_input("Benutzername", key="login_user")
+    pw   = st.text_input("Passwort", type="password", key="login_pw")
     if st.button("Anmelden", type="primary"):
-        if pw == correct_pw:
+        if user.strip() == correct_user and pw == correct_pw:
             st.session_state.authenticated = True
+            st.session_state.display_name = display_name
             st.rerun()
         else:
-            st.error("❌ Falsches Passwort.")
+            st.error("❌ Benutzername oder Passwort falsch.")
     return False
 
-if not _check_password():
+if not _check_login():
     st.stop()
 
 # ─── Minimales CSS (theme-kompatibel) ─────────────────────────────────────────
@@ -79,6 +85,13 @@ st.divider()
 
 # ─── Sidebar ──────────────────────────────────────────────────────────────────
 with st.sidebar:
+    if st.session_state.get("authenticated"):
+        st.caption(f"👤 {st.session_state.get('display_name', '')}")
+        if st.button("Abmelden", key="logout_btn"):
+            for k in ("authenticated", "display_name", "login_user", "login_pw"):
+                st.session_state.pop(k, None)
+            st.rerun()
+        st.divider()
     st.markdown("### ⚙️ Einstellungen")
 
     st.markdown("**API Keys**")
