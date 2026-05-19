@@ -119,29 +119,55 @@ def analyse(company_name: str, zefix: dict, perplexity: dict,
 
     message = _client.messages.create(
         model=CLAUDE_MODEL,
-        max_tokens=4096,
+        max_tokens=8192,
         messages=[{"role": "user", "content": prompt}],
     )
     raw = message.content[0].text.strip()
     import re
     raw = re.sub(r"```json\n?|```", "", raw).strip()
 
-    # Robuster JSON-Parser
+    # ── Robuster JSON-Parser mit 3-stufigem Fallback ──────────────────────
+    # 1) Direkter Parse
     try:
         return json.loads(raw)
     except json.JSONDecodeError:
-        last_comma = max(raw.rfind(",\n"), raw.rfind(", "))
-        if last_comma > 0:
-            raw = raw[:last_comma] + "\n}"
-        try:
-            return json.loads(raw)
-        except json.JSONDecodeError:
-            brace_count = 0
-            for i, ch in enumerate(raw):
-                if ch == '{':
-                    brace_count += 1
-                elif ch == '}':
-                    brace_count -= 1
-                    if brace_count == 0:
-                        return json.loads(raw[:i+1])
-            raise
+        pass
+
+    # 2) json-repair (handhabt unterminated strings, fehlende Kommas, etc.)
+    try:
+        from json_repair import repair_json
+        repaired = repair_json(raw, return_objects=False)
+        return json.loads(repaired)
+    except Exception:
+        pass
+
+    # 3) Manuelle Reparatur: schneide an letztem vollständigen Element ab
+    try:
+        # Finde letzte sauber abgeschlossene Zeile (endet auf "," oder "}" oder "]")
+        lines = raw.split("\n")
+        for cut in range(len(lines) - 1, 0, -1):
+            stripped = lines[cut].rstrip()
+            if stripped.endswith((",", '"', "}", "]")):
+                # Schneide hier ab, entferne nachfolgendes Komma, schliesse Objekt
+                candidate = "\n".join(lines[:cut + 1]).rstrip().rstrip(",")
+                # Anzahl offener Klammern zählen
+                opens_brace = candidate.count("{") - candidate.count("}")
+                opens_brack = candidate.count("[") - candidate.count("]")
+                candidate += "]" * opens_brack + "}" * opens_brace
+                try:
+                    return json.loads(candidate)
+                except json.JSONDecodeError:
+                    continue
+    except Exception:
+        pass
+
+    # Letzter Ausweg: minimales Fehler-Objekt zurückgeben
+    return {
+        "company": company_name,
+        "summary": "Claude-Antwort konnte nicht geparst werden (Antwort zu lang / abgeschnitten).",
+        "pain_point_1": "–", "pain_point_2": "–", "pain_point_3": "–",
+        "investitionssignale": [], "totalCount": 0,
+        "news": [], "construction": [], "jobs": [],
+        "_parse_error": True,
+        "_raw_preview": raw[:500],
+    }
