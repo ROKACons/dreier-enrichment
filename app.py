@@ -7,7 +7,7 @@ import os
 import pandas as pd
 import streamlit as st
 
-from enrichment import output, pipeline
+from enrichment import output, pipeline, storage
 from enrichment.parser import parse_company_input
 
 st.set_page_config(
@@ -122,6 +122,27 @@ with st.sidebar:
         key="existing_xlsx",
     )
 
+    # ── Notfall-Download immer verfügbar ─────────────────────────────────
+    st.divider()
+    _state_partial = storage.load_batch()
+    if _state_partial and _state_partial.get("results"):
+        st.markdown("**🆘 Notfall-Download**")
+        st.caption(f"{len(_state_partial['results'])} Firmen zwischengespeichert")
+        try:
+            _partial_xlsx = output.results_to_excel(
+                [r for r in _state_partial["results"] if "_error" not in r] or _state_partial["results"],
+                None,
+            )
+            st.download_button(
+                "📥 Zwischenstand als Excel",
+                data=_partial_xlsx,
+                file_name=f"Enrichment_Zwischenstand_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                key="emergency_dl",
+            )
+        except Exception:
+            pass
+
 # ─── Tabs ─────────────────────────────────────────────────────────────────────
 tab1, tab2, tab3 = st.tabs(["📋 Firmen eingeben", "📊 Ergebnisse", "📤 Export"])
 
@@ -193,37 +214,88 @@ with tab1:
             disabled=st.session_state.running,
         )
 
-        if start_btn:
+        # ── Resume-Banner falls unvollendeter Batch existiert ────────────────
+        if storage.has_unfinished_batch() and not start_btn:
+            summary = storage.batch_summary(storage.load_batch())
+            with st.container(border=True):
+                st.warning(
+                    f"⏸️ **Unvollendeter Lauf gefunden** – "
+                    f"{summary['done']}/{summary['total']} Firmen verarbeitet "
+                    f"({summary['pending']} ausstehend), gestartet {summary['started_at'][:16]}."
+                )
+                cc1, cc2, cc3 = st.columns(3)
+                if cc1.button("▶️ Fortsetzen", type="primary", key="resume_btn"):
+                    state = storage.load_batch()
+                    st.session_state.results = state.get("results", [])
+                    st.session_state.log = state.get("log", [])
+                    st.session_state.resume = True
+                    st.session_state.resume_pending = state.get("pending", [])
+                    st.rerun()
+                if cc2.button("📥 Bisherige Ergebnisse downloaden", key="dl_partial"):
+                    state = storage.load_batch()
+                    partial_xlsx = output.results_to_excel(
+                        [r for r in state.get("results", []) if "_error" not in r] or state.get("results", []),
+                        None,
+                    )
+                    st.download_button(
+                        "Excel speichern",
+                        data=partial_xlsx,
+                        file_name=f"Enrichment_partial_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        key="dl_partial_btn",
+                    )
+                if cc3.button("🗑️ Verwerfen & neu starten", key="discard_btn"):
+                    storage.clear_batch()
+                    st.session_state.results = []
+                    st.session_state.log = []
+                    st.rerun()
+
+        # ── Eigentlicher Enrichment-Lauf ─────────────────────────────────────
+        resume_mode = st.session_state.pop("resume", False)
+
+        if start_btn or resume_mode:
             import traceback
             st.session_state.running = True
-            st.session_state.results = []
-            st.session_state.log = []
-            st.session_state.excel_cache = None
             st.session_state.show_inline_results = False
+
+            if resume_mode:
+                state = storage.load_batch()
+                to_process = list(state.get("pending", []))
+                st.session_state.results = state.get("results", [])
+                st.session_state.log = state.get("log", [])
+                st.info(f"▶️ Fortsetzung – {len(to_process)} Firmen verbleibend")
+            else:
+                state = storage.init_batch(final_list)
+                to_process = list(final_list)
+                st.session_state.results = []
+                st.session_state.log = []
+                st.session_state.excel_cache = None
 
             progress_bar = st.progress(0, text="Initialisiere …")
             status_text = st.empty()
-            total = len(final_list)
+            live_results = st.empty()
+            total_initial = state["total"]
+            already_done = total_initial - len(to_process)
 
-            for idx, raw in enumerate(final_list):
+            for offset, raw in enumerate(to_process):
+                idx = already_done + offset
                 parsed_name = parse_company_input(raw)["companyName"]
-                status_text.markdown(f"**[{idx+1}/{total}]** Verarbeite: **{parsed_name}** …")
+                status_text.markdown(
+                    f"**[{idx+1}/{total_initial}]** Verarbeite: **{parsed_name}** … "
+                    f"_(automatisch gespeichert nach jeder Firma)_"
+                )
 
-                def _cb(step, pct, _idx=idx, _total=total):
+                def _cb(step, pct, _idx=idx, _total=total_initial):
                     overall = min(_idx / _total + pct / 100 / _total, 0.99)
                     progress_bar.progress(overall, text=f"[{_idx+1}/{_total}] {step}")
 
                 try:
                     result = pipeline.run(raw, progress_callback=_cb)
-                    st.session_state.results.append(result)
-                    st.session_state.log.append(
-                        f"✅ {parsed_name} – {result.get('totalCount', 0)} Treffer"
-                    )
+                    log_line = f"✅ {parsed_name} – {result.get('totalCount', 0)} Treffer"
                 except Exception as exc:
                     tb = traceback.format_exc()
-                    st.session_state.log.append(f"❌ {parsed_name} – Fehler: {exc}\n{tb}")
-                    # Add placeholder so result count stays consistent
-                    st.session_state.results.append({
+                    log_line = f"❌ {parsed_name} – Fehler: {exc}"
+                    result = {
                         "company": parsed_name,
                         "summary": f"Fehler bei Verarbeitung: {exc}",
                         "pain_point_1": "–", "pain_point_2": "–", "pain_point_3": "–",
@@ -231,25 +303,47 @@ with tab1:
                         "branche": "–", "mitarbeiter": "–", "totalCount": 0,
                         "news": [], "construction": [], "jobs": [],
                         "_error": str(exc),
+                        "_error_traceback": tb,
                         "_meta": {"input": raw, "companyName": parsed_name},
-                    })
+                    }
 
+                # SOFORT speichern - bei Crash gehen vorige Ergebnisse nicht verloren
+                state = storage.save_result(state, raw, result, log_line)
+                st.session_state.results.append(result)
+                st.session_state.log.append(log_line)
+
+                # Excel inkrementell aktualisieren - jederzeit downloadbar
+                try:
+                    st.session_state.excel_cache = output.results_to_excel(
+                        [r for r in st.session_state.results if "_error" not in r] or st.session_state.results,
+                        None,
+                    )
+                except Exception:
+                    pass
+
+                # Live-Anzeige der bisherigen Treffer
+                with live_results.container():
+                    ok = sum(1 for r in st.session_state.results if "_error" not in r)
+                    err = len(st.session_state.results) - ok
+                    st.caption(f"✅ {ok} fertig · ❌ {err} Fehler · ⏳ {len(to_process)-offset-1} ausstehend")
+
+            storage.mark_finished(state)
             progress_bar.progress(1.0, text="Fertig.")
             ok_count = sum(1 for r in st.session_state.results if "_error" not in r)
-            err_count = total - ok_count
+            err_count = total_initial - ok_count
             if err_count == 0:
-                status_text.success(f"✅ {ok_count}/{total} Firmen erfolgreich angereichert.")
+                status_text.success(f"✅ {ok_count}/{total_initial} Firmen erfolgreich angereichert.")
             else:
-                status_text.warning(f"⚠️ {ok_count}/{total} erfolgreich – {err_count} Fehler (siehe Protokoll unten)")
+                status_text.warning(f"⚠️ {ok_count}/{total_initial} erfolgreich – {err_count} Fehler (siehe Protokoll unten)")
 
             st.session_state.running = False
             st.session_state.show_inline_results = True
 
-            # Excel-Cache vorberechnen
+            # Finale Excel mit existierender Excel-Datei mergen
             existing_bytes = existing_file.getvalue() if existing_file else None
             st.session_state.excel_cache = output.results_to_excel(
                 [r for r in st.session_state.results if "_error" not in r] or st.session_state.results,
-                existing_bytes
+                existing_bytes,
             )
 
             # Auto-Mail
