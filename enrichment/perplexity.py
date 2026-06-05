@@ -38,7 +38,22 @@ def get_company_overview(company_name: str) -> dict:
         content = resp.json()["choices"][0]["message"]["content"]
         import json, re
         cleaned = re.sub(r"```json\n?|```", "", content).strip()
-        return json.loads(cleaned)
+        try:
+            return json.loads(cleaned)
+        except json.JSONDecodeError:
+            # Robuster Fallback via json-repair
+            try:
+                from json_repair import repair_json
+                return json.loads(repair_json(cleaned, return_objects=False))
+            except Exception:
+                # JSON-Block aus Text extrahieren als letzter Ausweg
+                m = re.search(r"\{[^{}]*\}", cleaned, re.DOTALL)
+                if m:
+                    try:
+                        return json.loads(m.group(0))
+                    except Exception:
+                        pass
+                raise
     except Exception as exc:
         return {
             "Branche": "", "Mitarbeiter": "", "Sitz": "",

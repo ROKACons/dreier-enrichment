@@ -35,6 +35,17 @@ def _check_login() -> bool:
     if st.session_state.get("authenticated"):
         return True
 
+    # ── Brute-Force-Schutz ───────────────────────────────────────────────
+    import time
+    attempts = st.session_state.get("login_attempts", 0)
+    lockout_until = st.session_state.get("login_lockout_until", 0)
+    now = time.time()
+
+    if lockout_until > now:
+        wait = int(lockout_until - now)
+        st.error(f"🔒 Zu viele Fehlversuche. Bitte {wait} Sekunden warten.")
+        return False
+
     st.markdown("## 🔐 Anmeldung erforderlich")
     st.caption("DreierFashion4You – Firmen Enrichment | powered by ROKA Consulting")
     user = st.text_input("Benutzername", key="login_user")
@@ -43,9 +54,18 @@ def _check_login() -> bool:
         if user.strip() == correct_user and pw == correct_pw:
             st.session_state.authenticated = True
             st.session_state.display_name = display_name
+            st.session_state.login_attempts = 0
             st.rerun()
         else:
-            st.error("❌ Benutzername oder Passwort falsch.")
+            attempts += 1
+            st.session_state.login_attempts = attempts
+            if attempts >= 5:
+                # 60 Sekunden Sperre nach 5 Fehlversuchen
+                st.session_state.login_lockout_until = now + 60
+                st.session_state.login_attempts = 0
+                st.error("🔒 Zu viele Fehlversuche – 60 Sekunden gesperrt.")
+            else:
+                st.error(f"❌ Benutzername oder Passwort falsch ({attempts}/5).")
     return False
 
 if not _check_login():

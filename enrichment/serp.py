@@ -1,5 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enrichment import ssl_session as requests
 from config import SERPAPI_KEY, SERPAPI_BASE
 
@@ -16,7 +16,7 @@ def _get(params: dict) -> dict:
 
 
 def _date_ago(days: int) -> str:
-    return (datetime.utcnow() - timedelta(days=days)).strftime("%Y-%m-%d")
+    return (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
 
 
 def search_all(company_name: str, domain: str | None = None) -> dict:
@@ -74,9 +74,12 @@ def search_all(company_name: str, domain: str | None = None) -> dict:
     jobs = _extract(results.get("jobs", {}), "organic_results")
     assoc_raw = results.get("associations", {})
 
-    total_assoc = assoc_raw.get("search_metadata", {}).get("total_results", 0)
+    try:
+        total_assoc = int(assoc_raw.get("search_metadata", {}).get("total_results", 0) or 0)
+    except (ValueError, TypeError):
+        total_assoc = 0
     verband_status = (
-        "Mögliche Mitgliedschaft gefunden" if total_assoc and int(total_assoc) > 0
+        "Mögliche Mitgliedschaft gefunden" if total_assoc > 0
         else "Nicht eindeutig gefunden"
     )
 

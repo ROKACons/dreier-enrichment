@@ -26,7 +26,10 @@ ZEFIX_USER = _get("ZEFIX_USER")
 ZEFIX_PASS = _get("ZEFIX_PASS")
 
 SMTP_SERVER = _get("SMTP_SERVER", "smtp.office365.com")
-SMTP_PORT   = int(_get("SMTP_PORT", "587"))
+try:
+    SMTP_PORT = int(_get("SMTP_PORT", "587") or 587)
+except (ValueError, TypeError):
+    SMTP_PORT = 587
 SMTP_USER   = _get("SMTP_USER")
 SMTP_PASS   = _get("SMTP_PASS")
 EMAIL_FROM  = _get("EMAIL_FROM")

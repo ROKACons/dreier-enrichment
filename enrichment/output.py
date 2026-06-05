@@ -1,4 +1,5 @@
 import io
+import html
 import smtplib
 from datetime import datetime
 from email.mime.multipart import MIMEMultipart
@@ -120,7 +121,7 @@ def _write_row(ws, row: int, r: dict):
         r.get("uid", ""),
         r.get("zefix_url", "") or (meta.get("zefix_url", "")),
         meta.get("domain", ""),
-        meta.get("timestamp", "")[:10],
+        (meta.get("timestamp") or "")[:10],
     ]
     for col_idx, val in enumerate(values, start=1):
         ws.cell(row=row, column=col_idx, value=val or "")
@@ -142,14 +143,17 @@ def send_email(
         "<tr style='background:#1F3864;color:white;'>"
         "<th>Firma</th><th>Pain Point 1</th><th>Pain Point 2</th><th>Pain Point 3</th></tr>",
     ]
+    def _esc(value) -> str:
+        return html.escape(str(value or ""), quote=True)
+
     for i, r in enumerate(results):
         bg = "#EBF3FB" if i % 2 == 0 else "#FFFFFF"
         body_lines.append(
             f"<tr style='background:{bg};'>"
-            f"<td><b>{r.get('company','')}</b><br><small>{r.get('summary','')}</small></td>"
-            f"<td>{r.get('pain_point_1','')}</td>"
-            f"<td>{r.get('pain_point_2','')}</td>"
-            f"<td>{r.get('pain_point_3','')}</td></tr>"
+            f"<td><b>{_esc(r.get('company',''))}</b><br><small>{_esc(r.get('summary',''))}</small></td>"
+            f"<td>{_esc(r.get('pain_point_1',''))}</td>"
+            f"<td>{_esc(r.get('pain_point_2',''))}</td>"
+            f"<td>{_esc(r.get('pain_point_3',''))}</td></tr>"
         )
     body_lines.append("</table><p>Details im angehängten Excel.</p>")
 
