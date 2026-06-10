@@ -71,50 +71,114 @@ def _check_login() -> bool:
 if not _check_login():
     st.stop()
 
-# ─── ROKA Brand CSS ───────────────────────────────────────────────────────────
+# ─── ROKA Brand CSS – Dark Mode ───────────────────────────────────────────────
 st.markdown("""
 <style>
-  /* ROKA Brand-Farben: #1279BE (primary), #0E5E96 (dark), #303030 (text) */
+  /* ROKA Brand: #1279BE primary, #4FB3FF accent, dunkler Hintergrund #0B1220 */
+
+  /* Streamlit-Header/Toolbar komplett ausblenden (Share/Star/Edit/GitHub/Menu) */
+  header[data-testid="stHeader"] { display: none !important; }
+  div[data-testid="stToolbar"]    { display: none !important; }
+  #MainMenu                       { visibility: hidden !important; }
+  footer                          { visibility: hidden !important; }
+  .stDeployButton                 { display: none !important; }
+
+  /* Globaler Dark-Mode-Hintergrund */
+  .stApp {
+    background: radial-gradient(ellipse at top left, #102036 0%, #0B1220 60%, #060B17 100%) !important;
+  }
+  .main .block-container {
+    padding-top: 1.2rem !important;
+    max-width: 1200px;
+  }
+
+  /* Result-Cards dunkel */
   .result-card {
     border-left: 5px solid #1279BE;
     padding: 0.8rem 1.2rem;
     margin-bottom: 0.8rem;
-    background-color: #F8F8F8;
+    background-color: #0F1A2E;
+    border-radius: 4px;
   }
+
+  /* Pain-Tags */
   .pain-tag {
     display: inline-block;
     border-radius: 6px;
     padding: 4px 12px;
     margin: 3px 4px 3px 0;
     font-size: 0.85rem;
-    background-color: rgba(18, 121, 190, 0.15);
-    border: 1px solid rgba(18, 121, 190, 0.4);
-    color: #0E5E96;
+    background-color: rgba(18, 121, 190, 0.18);
+    border: 1px solid rgba(79, 179, 255, 0.5);
+    color: #4FB3FF;
     font-weight: 500;
   }
-  /* Header-Style */
-  h1, h2, h3 {
-    color: #1279BE !important;
-  }
-  h1 { font-weight: 600 !important; }
-  /* Buttons abgerundet */
+
+  /* Headings: weiß mit blauem Akzent */
+  h1, h2, h3 { color: #FFFFFF !important; font-weight: 600 !important; }
+  h1 .accent, h2 .accent { color: #4FB3FF !important; }
+
+  /* Buttons */
   .stButton > button[kind="primary"] {
     background-color: #1279BE;
     border-color: #1279BE;
+    color: #FFFFFF;
   }
   .stButton > button[kind="primary"]:hover {
-    background-color: #0E5E96;
-    border-color: #0E5E96;
+    background-color: #4FB3FF;
+    border-color: #4FB3FF;
   }
+
+  /* Tabs */
+  .stTabs [data-baseweb="tab-list"] { gap: 4px; }
+  .stTabs [data-baseweb="tab"] {
+    background-color: rgba(255,255,255,0.04);
+    border-radius: 6px 6px 0 0;
+  }
+  .stTabs [aria-selected="true"] {
+    background-color: rgba(18, 121, 190, 0.25) !important;
+    color: #4FB3FF !important;
+  }
+
+  /* Sidebar */
+  section[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #0F1A2E 0%, #0B1220 100%) !important;
+    border-right: 1px solid rgba(79, 179, 255, 0.15);
+  }
+
+  /* ROKA-Logo-Bar oben */
+  .roka-brandbar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 4px 18px 4px;
+    border-bottom: 1px solid rgba(79, 179, 255, 0.18);
+    margin-bottom: 18px;
+  }
+  .roka-brandbar .logo-mark {
+    width: 42px; height: 42px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .roka-brandbar .logo-text {
+    display: flex; flex-direction: column; line-height: 1.1;
+  }
+  .roka-brandbar .logo-text .l1 {
+    color: #FFFFFF; font-weight: 700; font-size: 1.25rem; letter-spacing: 0.5px;
+  }
+  .roka-brandbar .logo-text .l2 {
+    color: #4FB3FF; font-size: 0.72rem; letter-spacing: 3px; text-transform: uppercase;
+  }
+
   /* ROKA-Footer */
   .roka-footer {
     text-align: center;
-    color: #757575;
+    color: #8FA3BF;
     font-size: 0.8rem;
-    padding: 1rem;
-    border-top: 1px solid #C5C5C5;
-    margin-top: 2rem;
+    padding: 1.5rem 1rem;
+    border-top: 1px solid rgba(79, 179, 255, 0.15);
+    margin-top: 3rem;
   }
+  .roka-footer a { color: #4FB3FF !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -125,23 +189,40 @@ if "log"                 not in st.session_state: st.session_state.log = []
 if "excel_cache"         not in st.session_state: st.session_state.excel_cache = None
 if "show_inline_results" not in st.session_state: st.session_state.show_inline_results = False
 
-# ─── Header ───────────────────────────────────────────────────────────────────
-col_logo, col_title = st.columns([1, 5])
-with col_logo:
-    st.markdown(
-        "<div style='font-size:2.5rem;line-height:1;color:#1279BE;'>🏢</div>",
-        unsafe_allow_html=True,
-    )
-with col_title:
-    st.markdown(
-        "<h1 style='margin:0;color:#1279BE;'>Firmen News & Daten Enrichment</h1>"
-        "<div style='color:#757575;font-size:0.95rem;margin-top:4px;'>"
-        "DreierFashion4You · Vertriebsvorbereitung · powered by "
-        "<a href='https://rokaconsulting.ch' style='color:#1279BE;text-decoration:none;'>ROKA Consulting</a>"
-        "</div>",
-        unsafe_allow_html=True,
-    )
-st.divider()
+# ─── Header mit ROKA-Logo ─────────────────────────────────────────────────────
+ROKA_LOGO_SVG = """
+<svg viewBox='0 0 64 64' xmlns='http://www.w3.org/2000/svg'>
+  <defs>
+    <linearGradient id='rk' x1='0' y1='0' x2='1' y2='1'>
+      <stop offset='0%' stop-color='#4FB3FF'/>
+      <stop offset='100%' stop-color='#1279BE'/>
+    </linearGradient>
+  </defs>
+  <circle cx='32' cy='32' r='28' fill='none' stroke='url(#rk)' stroke-width='3'/>
+  <ellipse cx='32' cy='32' rx='28' ry='11' fill='none' stroke='url(#rk)' stroke-width='2.2'/>
+  <ellipse cx='32' cy='32' rx='11' ry='28' fill='none' stroke='url(#rk)' stroke-width='2.2'/>
+  <path d='M6 22 Q32 36 58 22' fill='none' stroke='url(#rk)' stroke-width='2'/>
+  <path d='M6 42 Q32 28 58 42' fill='none' stroke='url(#rk)' stroke-width='2'/>
+</svg>
+"""
+
+st.markdown(
+    f"""
+    <div class='roka-brandbar'>
+        <div class='logo-mark'>{ROKA_LOGO_SVG}</div>
+        <div class='logo-text'>
+            <span class='l1'>ROKA Consulting</span>
+            <span class='l2'>Logistics &amp; AI</span>
+        </div>
+    </div>
+    <h1 style='margin:0 0 4px 0;'>Firmen News &amp; Daten <span class='accent'>Enrichment</span></h1>
+    <div style='color:#8FA3BF;font-size:0.95rem;margin-bottom:18px;'>
+        DreierFashion4You · Vertriebsvorbereitung · powered by
+        <a href='https://rokaconsulting.ch' style='color:#4FB3FF;text-decoration:none;'>ROKA Consulting</a>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 # ─── Sidebar ──────────────────────────────────────────────────────────────────
 with st.sidebar:
