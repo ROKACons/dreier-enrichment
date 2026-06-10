@@ -71,22 +71,49 @@ def _check_login() -> bool:
 if not _check_login():
     st.stop()
 
-# ─── Minimales CSS (theme-kompatibel) ─────────────────────────────────────────
+# ─── ROKA Brand CSS ───────────────────────────────────────────────────────────
 st.markdown("""
 <style>
+  /* ROKA Brand-Farben: #1279BE (primary), #0E5E96 (dark), #303030 (text) */
   .result-card {
-    border-left: 5px solid #1F76C2;
+    border-left: 5px solid #1279BE;
     padding: 0.8rem 1.2rem;
     margin-bottom: 0.8rem;
+    background-color: #F8F8F8;
   }
   .pain-tag {
     display: inline-block;
     border-radius: 6px;
-    padding: 3px 10px;
+    padding: 4px 12px;
     margin: 3px 4px 3px 0;
     font-size: 0.85rem;
-    background-color: rgba(31, 118, 194, 0.15);
-    border: 1px solid rgba(31, 118, 194, 0.3);
+    background-color: rgba(18, 121, 190, 0.15);
+    border: 1px solid rgba(18, 121, 190, 0.4);
+    color: #0E5E96;
+    font-weight: 500;
+  }
+  /* Header-Style */
+  h1, h2, h3 {
+    color: #1279BE !important;
+  }
+  h1 { font-weight: 600 !important; }
+  /* Buttons abgerundet */
+  .stButton > button[kind="primary"] {
+    background-color: #1279BE;
+    border-color: #1279BE;
+  }
+  .stButton > button[kind="primary"]:hover {
+    background-color: #0E5E96;
+    border-color: #0E5E96;
+  }
+  /* ROKA-Footer */
+  .roka-footer {
+    text-align: center;
+    color: #757575;
+    font-size: 0.8rem;
+    padding: 1rem;
+    border-top: 1px solid #C5C5C5;
+    margin-top: 2rem;
   }
 </style>
 """, unsafe_allow_html=True)
@@ -99,8 +126,21 @@ if "excel_cache"         not in st.session_state: st.session_state.excel_cache =
 if "show_inline_results" not in st.session_state: st.session_state.show_inline_results = False
 
 # ─── Header ───────────────────────────────────────────────────────────────────
-st.title("🏢 Firmen News & Daten Enrichment")
-st.caption("DreierFashion4You – Vertriebsvorbereitung | powered by ROKA Consulting")
+col_logo, col_title = st.columns([1, 5])
+with col_logo:
+    st.markdown(
+        "<div style='font-size:2.5rem;line-height:1;color:#1279BE;'>🏢</div>",
+        unsafe_allow_html=True,
+    )
+with col_title:
+    st.markdown(
+        "<h1 style='margin:0;color:#1279BE;'>Firmen News & Daten Enrichment</h1>"
+        "<div style='color:#757575;font-size:0.95rem;margin-top:4px;'>"
+        "DreierFashion4You · Vertriebsvorbereitung · powered by "
+        "<a href='https://rokaconsulting.ch' style='color:#1279BE;text-decoration:none;'>ROKA Consulting</a>"
+        "</div>",
+        unsafe_allow_html=True,
+    )
 st.divider()
 
 # ─── Sidebar ──────────────────────────────────────────────────────────────────
@@ -114,33 +154,26 @@ with st.sidebar:
         st.divider()
     st.markdown("### ⚙️ Einstellungen")
 
-    st.markdown("**API Keys**")
+    # API-Keys nur sichtbar wenn ?admin=1 in URL (für Admin/Support)
     import config
-    for label, val in [
-        ("SerpAPI",    config.SERPAPI_KEY),
-        ("Firecrawl",  config.FIRECRAWL_KEY),
-        ("Perplexity", config.PERPLEXITY_KEY),
-        ("Anthropic",  config.ANTHROPIC_KEY),
-    ]:
-        status = "✅" if val else "❌ fehlt"
-        st.write(f"{status} {label}")
-
-    st.divider()
-    st.markdown("**E-Mail (optional)**")
-    sidebar_email = st.text_input(
-        "Empfänger",
-        placeholder="vertrieb@dreier.ch",
-        key="sidebar_email",
-    )
-    send_after = st.checkbox("Nach Lauf automatisch senden")
-
-    st.divider()
-    st.markdown("**Bestehende Excel ergänzen**")
-    existing_file = st.file_uploader(
-        "Excel-Datei hochladen (optional)",
-        type=["xlsx"],
-        key="existing_xlsx",
-    )
+    _is_admin = st.query_params.get("admin") == "1"
+    if _is_admin:
+        with st.expander("🔧 API-Status (Admin)", expanded=False):
+            for label, val in [
+                ("SerpAPI",    config.SERPAPI_KEY),
+                ("Firecrawl",  config.FIRECRAWL_KEY),
+                ("Perplexity", config.PERPLEXITY_KEY),
+                ("Anthropic",  config.ANTHROPIC_KEY),
+                ("ZEFIX",      config.ZEFIX_USER),
+                ("SMTP",       config.SMTP_PASS),
+            ]:
+                status = "✅" if val else "❌ fehlt"
+                st.write(f"{status} {label}")
+        # E-Mail-Versand: Eingabe NUR in Tab 3 (Export), nicht doppelt
+    # Bestehende Excel: Eingabe NUR in Tab 3 (Export), nicht doppelt
+    sidebar_email = ""
+    send_after = False
+    existing_file = None
 
     # ── Notfall-Download immer verfügbar ─────────────────────────────────
     st.divider()
@@ -228,8 +261,10 @@ with tab1:
             f"Geschätzte Dauer: ca. {len(final_list) * 45}–{len(final_list) * 90} Sek."
         )
 
+        _n = len(final_list)
+        _label = "Firma" if _n == 1 else "Firmen"
         start_btn = st.button(
-            f"🚀 Enrichment starten ({len(final_list)} Firma{'en' if len(final_list) != 1 else ''})",
+            f"🚀 Enrichment starten ({_n} {_label})",
             type="primary",
             disabled=st.session_state.running,
         )
@@ -573,12 +608,20 @@ with tab3:
     else:
         st.subheader("Export")
 
-        # Excel berechnen falls noch nicht gecacht
-        if not st.session_state.excel_cache:
-            existing_bytes = existing_file.getvalue() if existing_file else None
-            st.session_state.excel_cache = output.results_to_excel(
-                st.session_state.results, existing_bytes
+        # Optional: bestehende Excel ergänzen
+        with st.expander("📎 Bestehende Excel ergänzen (optional)", expanded=False):
+            existing_file_export = st.file_uploader(
+                "Bestehende Excel-Datei hochladen",
+                type=["xlsx"],
+                key="existing_xlsx_export",
+                help="Falls Sie bereits eine Excel haben, die ergänzt werden soll – hier hochladen."
             )
+        existing_bytes = existing_file_export.getvalue() if existing_file_export else None
+
+        # Excel mit/ohne bestehende Datei neu berechnen
+        st.session_state.excel_cache = output.results_to_excel(
+            st.session_state.results, existing_bytes
+        )
 
         col_dl, col_mail = st.columns(2)
 
@@ -596,8 +639,7 @@ with tab3:
         with col_mail:
             st.markdown("**📧 Per Mail senden**")
             export_mail = st.text_input(
-                "Empfänger",
-                value=sidebar_email,
+                "Empfänger (kommagetrennt für mehrere)",
                 key="export_mail_field",
                 placeholder="vertrieb@dreier.ch",
             )
@@ -605,14 +647,15 @@ with tab3:
                 if not export_mail.strip():
                     st.warning("Bitte Empfänger angeben.")
                 elif not config.SMTP_PASS:
-                    st.warning("SMTP-Passwort in .env noch nicht gesetzt.")
+                    st.warning("⚠️ SMTP-Passwort in Streamlit Secrets noch nicht gesetzt. Bitte Admin kontaktieren.")
                 else:
                     try:
                         to_list = [e.strip() for e in export_mail.split(",") if e.strip()]
                         output.send_email(to_list, st.session_state.results, st.session_state.excel_cache)
                         st.success(f"✅ Gesendet an {', '.join(to_list)}")
                     except Exception as exc:
-                        st.error(f"Fehler: {exc}")
+                        st.error(f"E-Mail-Versand fehlgeschlagen: {exc}")
+                        st.caption("Hinweis: Bei wiederholten Fehlern Admin kontaktieren.")
 
         st.divider()
         st.markdown("**Vorschau**")
@@ -628,3 +671,13 @@ with tab3:
                 "Summary":      r.get("summary", "")[:80] + "…",
             })
         st.dataframe(pd.DataFrame(preview), use_container_width=True)
+
+# ─── ROKA-Footer ──────────────────────────────────────────────────────────────
+st.markdown(
+    "<div class='roka-footer'>"
+    "ROKA Consulting · KI-Logistik-Pionier der Schweiz · "
+    "<a href='https://rokaconsulting.ch' style='color:#1279BE;text-decoration:none;'>rokaconsulting.ch</a> · "
+    "roland.kalt@rokaconsulting.ch"
+    "</div>",
+    unsafe_allow_html=True,
+)
