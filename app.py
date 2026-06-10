@@ -233,13 +233,13 @@ with st.sidebar:
                 st.session_state.pop(k, None)
             st.rerun()
         st.divider()
-    st.markdown("### ⚙️ Einstellungen")
 
     # API-Keys nur sichtbar wenn ?admin=1 in URL (für Admin/Support)
     import config
     _is_admin = st.query_params.get("admin") == "1"
     if _is_admin:
-        with st.expander("🔧 API-Status (Admin)", expanded=False):
+        st.markdown("### ⚙️ Admin")
+        with st.expander("🔧 API-Status", expanded=False):
             for label, val in [
                 ("SerpAPI",    config.SERPAPI_KEY),
                 ("Firecrawl",  config.FIRECRAWL_KEY),
@@ -250,8 +250,8 @@ with st.sidebar:
             ]:
                 status = "✅" if val else "❌ fehlt"
                 st.write(f"{status} {label}")
-        # E-Mail-Versand: Eingabe NUR in Tab 3 (Export), nicht doppelt
-    # Bestehende Excel: Eingabe NUR in Tab 3 (Export), nicht doppelt
+
+    # E-Mail-Versand & Excel-Upload: NUR in Tab 3 (Export), nicht doppelt
     sidebar_email = ""
     send_after = False
     existing_file = None
