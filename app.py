@@ -150,23 +150,14 @@ st.markdown("""
   .roka-brandbar {
     display: flex;
     align-items: center;
-    gap: 14px;
-    padding: 12px 4px 18px 4px;
+    padding: 8px 4px 18px 4px;
     border-bottom: 1px solid rgba(79, 179, 255, 0.18);
     margin-bottom: 18px;
   }
-  .roka-brandbar .logo-mark {
-    width: 42px; height: 42px;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .roka-brandbar .logo-text {
-    display: flex; flex-direction: column; line-height: 1.1;
-  }
-  .roka-brandbar .logo-text .l1 {
-    color: #FFFFFF; font-weight: 700; font-size: 1.25rem; letter-spacing: 0.5px;
-  }
-  .roka-brandbar .logo-text .l2 {
-    color: #4FB3FF; font-size: 0.72rem; letter-spacing: 3px; text-transform: uppercase;
+  .roka-brandbar .roka-logo {
+    height: 64px;
+    width: auto;
+    object-fit: contain;
   }
 
   /* ROKA-Footer */
@@ -190,30 +181,16 @@ if "excel_cache"         not in st.session_state: st.session_state.excel_cache =
 if "show_inline_results" not in st.session_state: st.session_state.show_inline_results = False
 
 # ─── Header mit ROKA-Logo ─────────────────────────────────────────────────────
-ROKA_LOGO_SVG = """
-<svg viewBox='0 0 64 64' xmlns='http://www.w3.org/2000/svg'>
-  <defs>
-    <linearGradient id='rk' x1='0' y1='0' x2='1' y2='1'>
-      <stop offset='0%' stop-color='#4FB3FF'/>
-      <stop offset='100%' stop-color='#1279BE'/>
-    </linearGradient>
-  </defs>
-  <circle cx='32' cy='32' r='28' fill='none' stroke='url(#rk)' stroke-width='3'/>
-  <ellipse cx='32' cy='32' rx='28' ry='11' fill='none' stroke='url(#rk)' stroke-width='2.2'/>
-  <ellipse cx='32' cy='32' rx='11' ry='28' fill='none' stroke='url(#rk)' stroke-width='2.2'/>
-  <path d='M6 22 Q32 36 58 22' fill='none' stroke='url(#rk)' stroke-width='2'/>
-  <path d='M6 42 Q32 28 58 42' fill='none' stroke='url(#rk)' stroke-width='2'/>
-</svg>
-"""
+import base64
+from pathlib import Path
+
+_logo_path = Path(__file__).parent / "assets" / "ROKA Logo.png"
+_logo_b64 = base64.b64encode(_logo_path.read_bytes()).decode() if _logo_path.exists() else ""
 
 st.markdown(
     f"""
     <div class='roka-brandbar'>
-        <div class='logo-mark'>{ROKA_LOGO_SVG}</div>
-        <div class='logo-text'>
-            <span class='l1'>ROKA Consulting</span>
-            <span class='l2'>Logistics &amp; AI</span>
-        </div>
+        <img src='data:image/png;base64,{_logo_b64}' alt='ROKA Consulting' class='roka-logo'/>
     </div>
     <h1 style='margin:0 0 4px 0;'>Firmen News &amp; Daten <span class='accent'>Enrichment</span></h1>
     <div style='color:#8FA3BF;font-size:0.95rem;margin-bottom:18px;'>
