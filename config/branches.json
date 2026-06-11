@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "updated_at": "2026-06-11",
+  "branches": {
+    "Lagerlogistik": [
+      "Wareneingang",
+      "Lagerhaltung",
+      "Kommissionierung",
+      "Bestandsführung",
+      "Baustofflagerung"
+    ],
+    "Distribution & Versand": [
+      "Versand",
+      "Distribution",
+      "Stückgut",
+      "Systemverkehr"
+    ],
+    "Spezialtransporte": [
+      "Konventionelle Strassentransporte",
+      "Baustofftransport",
+      "Lebensmittellogistik",
+      "Pharmatransport",
+      "Textillogistik",
+      "Kombinierter Verkehr",
+      "Internationale Transporte"
+    ],
+    "Zusatzservices": [
+      "Retourenlogistik",
+      "Entsorgung",
+      "Verzollung Import/Export",
+      "Aufbereitung von Textilien"
+    ]
+  }
+}

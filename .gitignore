@@ -29,3 +29,10 @@ desktop.ini
 .vscode/
 .idea/
 *.swp
+
+# Debug & interne Dokumente
+_debug_*.py
+*.docx
+*.json
+!requirements*.json
+!config/branches.json
