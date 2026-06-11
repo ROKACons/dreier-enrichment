@@ -34,6 +34,11 @@ SMTP_USER   = _get("SMTP_USER")
 SMTP_PASS   = _get("SMTP_PASS")
 EMAIL_FROM  = _get("EMAIL_FROM")
 
+# GitHub-Persistenz fuer Bedarfsfelder-Matrix
+GITHUB_TOKEN  = _get("GITHUB_TOKEN")
+GITHUB_REPO   = _get("GITHUB_REPO", "ROKACons/dreier-enrichment")
+GITHUB_BRANCH = _get("GITHUB_BRANCH", "master")
+
 CLAUDE_MODEL = "claude-sonnet-4-6"
 
 SERPAPI_BASE    = "https://serpapi.com/search"

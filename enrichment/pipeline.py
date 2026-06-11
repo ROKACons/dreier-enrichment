@@ -1,7 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 
-from enrichment import parser, zefix, serp, firecrawl, perplexity, claude
+from enrichment import parser, zefix, serp, firecrawl, perplexity, claude, branches_store
 
 
 def run(raw_input: str, progress_callback=None) -> dict:
@@ -35,7 +35,9 @@ def run(raw_input: str, progress_callback=None) -> dict:
     scraped = firecrawl.scrape_articles(all_news, max_articles=3)
 
     notify("Claude analysiert Daten …", 75)
-    result = claude.analyse(name, zefix_data, perp_data, serp_data, scraped)
+    matrix = branches_store.load_matrix()
+    matrix_block = branches_store.matrix_to_prompt_block(matrix)
+    result = claude.analyse(name, zefix_data, perp_data, serp_data, scraped, matrix_block)
 
     notify("Fertig.", 100)
     result["_meta"] = {

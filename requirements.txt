@@ -6,3 +6,4 @@ pandas>=2.2
 python-dotenv>=1.0
 truststore>=0.9
 json-repair>=0.25
+PyGithub>=2.1

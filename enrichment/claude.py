@@ -47,6 +47,17 @@ Analysiere die Rohdaten zur Firma **{company}** und erstelle ein strukturiertes 
 === GESCRAPTE VOLLTEXTE (Top 3 Artikel) ===
 {scraped}
 
+=== DREIER-BEDARFSFELDER-MATRIX ===
+Folgende Branche/Detail-Kombinationen bietet DreierFashion4You an:
+{bedarfsfelder_matrix}
+
+REGELN BEDARFSFELDER:
+- Identifiziere aus den Rohdaten 1–5 konkrete Bedarfsfelder bei dieser Firma.
+- Branche MUSS aus der obigen Matrix stammen (exakte Schreibweise!).
+- Detail SOLL primaer aus der Matrix kommen (Quelle "matrix"); wenn KEIN passendes Detail in der Matrix existiert, beschreibe das Bedarfsfeld in eigenen Worten (Quelle "freitext").
+- Priorisiere absteigend: prio=1 = staerkster/dringendster Bedarf.
+- Jedes Bedarfsfeld muss mit einer kurzen Begruendung ≤15 Woerter aus den Quellen belegt sein.
+
 ════════════════════════════════════════════════════════════════
 AUSGABE: Valides JSON-Objekt (kein Markdown-Block), exakt dieses Schema:
 
@@ -66,6 +77,11 @@ AUSGABE: Valides JSON-Objekt (kein Markdown-Block), exakt dieses Schema:
   "pain_sources": ["Quelle 1", "Quelle 2", "Quelle 3"],
 
   "investitionssignale": ["Signal aus News/Bau/Jobs – belegt", "..."],
+
+  "bedarfsfelder": [
+    {{"branche": "Lagerlogistik", "detail": "Kommissionierung", "quelle": "matrix", "prio": 1, "begruendung": "Stellenanzeige Kommissionierer (Quelle)"}},
+    {{"branche": "Distribution & Versand", "detail": "Filialbelieferung", "quelle": "freitext", "prio": 2, "begruendung": "Newsbericht erwaehnt neue Filialen (Quelle)"}}
+  ],
 
   "miller_heiman": {{
     "buying_influences": {{
@@ -102,7 +118,7 @@ REGELN:
 
 
 def analyse(company_name: str, zefix: dict, perplexity: dict,
-            serp: dict, scraped: list) -> dict:
+            serp: dict, scraped: list, bedarfsfelder_matrix: str = "") -> dict:
     prompt = PROMPT_TEMPLATE.format(
         company=company_name,
         zefix=json.dumps(zefix, ensure_ascii=False, indent=2),
@@ -115,6 +131,7 @@ def analyse(company_name: str, zefix: dict, perplexity: dict,
         jobs=json.dumps(serp.get("jobs", [])[:10], ensure_ascii=False, indent=2),
         verband=f"{serp.get('verband_status','')}\nLinks: {', '.join(serp.get('verband_links',[]))}",
         scraped=json.dumps(scraped, ensure_ascii=False, indent=2),
+        bedarfsfelder_matrix=bedarfsfelder_matrix or "(Keine Matrix konfiguriert – LLM waehlt frei.)",
     )
 
     message = _client.messages.create(
@@ -166,7 +183,7 @@ def analyse(company_name: str, zefix: dict, perplexity: dict,
         "company": company_name,
         "summary": "Claude-Antwort konnte nicht geparst werden (Antwort zu lang / abgeschnitten).",
         "pain_point_1": "–", "pain_point_2": "–", "pain_point_3": "–",
-        "investitionssignale": [], "totalCount": 0,
+        "investitionssignale": [], "bedarfsfelder": [], "totalCount": 0,
         "news": [], "construction": [], "jobs": [],
         "_parse_error": True,
         "_raw_preview": raw[:500],

@@ -255,7 +255,12 @@ with st.sidebar:
             pass
 
 # ─── Tabs ─────────────────────────────────────────────────────────────────────
-tab1, tab2, tab3 = st.tabs(["📋 Firmen eingeben", "📊 Ergebnisse", "📤 Export"])
+tab1, tab2, tab3, tab4 = st.tabs([
+    "📋 Firmen eingeben",
+    "📊 Ergebnisse",
+    "📤 Export",
+    "⚙️ Bedarfsfelder",
+])
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB 1 – EINGABE
@@ -588,6 +593,18 @@ with tab2:
                     for s in signals:
                         st.markdown(f"- {s}")
 
+                # ── Bedarfsfelder (priorisiert) ──────────────────────────
+                bedarfe = sorted(r.get("bedarfsfelder", []), key=lambda x: x.get("prio", 99))
+                if bedarfe:
+                    st.markdown("**🎯 Erkannte Bedarfsfelder:**")
+                    for bf in bedarfe:
+                        marker = " *(Freitext)*" if bf.get("quelle") == "freitext" else ""
+                        st.markdown(
+                            f"- **{bf.get('prio', '?')}.** "
+                            f"`{bf.get('branche', '')}` / `{bf.get('detail', '')}`{marker}  \n"
+                            f"  └ _{bf.get('begruendung', '')}_"
+                        )
+
                 # ── Miller-Heiman Briefing ────────────────────────────────
                 mh = r.get("miller_heiman", {})
                 if mh:
@@ -729,6 +746,85 @@ with tab3:
                 "Summary":      r.get("summary", "")[:80] + "…",
             })
         st.dataframe(pd.DataFrame(preview), use_container_width=True)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# TAB 4 – BEDARFSFELDER-MATRIX
+# ══════════════════════════════════════════════════════════════════════════════
+with tab4:
+    from enrichment import branches_store
+
+    st.subheader("Bedarfsfelder-Matrix")
+    st.caption(
+        "Definiert, in welcher Branche und welchem Detail-Bereich das Enrichment "
+        "Bedarf erkennen soll. Findet die KI keinen Detail-Treffer aus dieser Matrix, "
+        "beschreibt sie das Bedarfsfeld in eigenen Worten (mit `*` markiert)."
+    )
+
+    if "matrix_cache" not in st.session_state:
+        st.session_state.matrix_cache = branches_store.load_matrix()
+
+    rows = branches_store.matrix_to_dataframe_rows(st.session_state.matrix_cache)
+    df = pd.DataFrame(rows or [{"Branche": "", "Detail": ""}])
+
+    edited = st.data_editor(
+        df,
+        num_rows="dynamic",
+        use_container_width=True,
+        key="matrix_editor",
+        column_config={
+            "Branche": st.column_config.TextColumn("Branche / Cluster", required=True),
+            "Detail":  st.column_config.TextColumn("Detail / Dienstleistung"),
+        },
+        hide_index=True,
+    )
+
+    col_a, col_b, col_c = st.columns([1, 1, 2])
+    with col_a:
+        save_clicked = st.button("💾 Speichern", type="primary", key="matrix_save")
+    with col_b:
+        reset_clicked = st.button("↺ Default wiederherstellen", key="matrix_reset")
+    with col_c:
+        st.caption(f"Stand: {st.session_state.matrix_cache.get('updated_at', '—')}")
+
+    if save_clicked:
+        new_matrix = branches_store.dataframe_rows_to_matrix(edited.to_dict("records"))
+        try:
+            branches_store.save_matrix_local(new_matrix)
+            sha = branches_store.commit_matrix_to_github(new_matrix)
+            st.session_state.matrix_cache = new_matrix
+            st.success(f"✅ Matrix gespeichert + auf GitHub committet ({sha[:7]}). "
+                       f"Streamlit redeployed automatisch in ~30s.")
+        except Exception as exc:
+            # Lokal hat geklappt, GitHub evtl. nicht (z.B. lokal ohne Token)
+            st.warning(f"⚠️ Lokal gespeichert, GitHub-Commit fehlgeschlagen: {exc}")
+            st.session_state.matrix_cache = new_matrix
+
+    if reset_clicked:
+        default = {
+            "version": 1,
+            "branches": {
+                "Lagerlogistik": ["Wareneingang", "Lagerhaltung", "Kommissionierung",
+                                  "Bestandsführung", "Baustofflagerung"],
+                "Distribution & Versand": ["Versand", "Distribution", "Stückgut", "Systemverkehr"],
+                "Spezialtransporte": ["Konventionelle Strassentransporte", "Baustofftransport",
+                                      "Lebensmittellogistik", "Pharmatransport", "Textillogistik",
+                                      "Kombinierter Verkehr", "Internationale Transporte"],
+                "Zusatzservices": ["Retourenlogistik", "Entsorgung",
+                                   "Verzollung Import/Export", "Aufbereitung von Textilien"],
+            },
+        }
+        st.session_state.matrix_cache = default
+        st.rerun()
+
+    with st.expander("ℹ️ So funktioniert die Matrix"):
+        st.markdown(
+            "- **Branche** = Cluster, **Detail** = konkrete Dienstleistung\n"
+            "- Mehrere Details pro Branche → mehrere Zeilen mit gleicher Branche\n"
+            "- LLM wählt 1–5 Bedarfsfelder pro Firma, priorisiert (1 = stärkster Bedarf)\n"
+            "- `*` markiert Freitext-Treffer (LLM hat eigenes Detail erfunden)\n"
+            "- Änderungen werden in `config/branches.json` auf GitHub committet → "
+            "Streamlit Cloud redeployed automatisch."
+        )
 
 # ─── ROKA-Footer ──────────────────────────────────────────────────────────────
 st.markdown(

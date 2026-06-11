@@ -31,6 +31,8 @@ COLUMNS = [
     ("Umsatz",               15),
     ("Verband",              20),
     ("Summary",              45),
+    ("Top-Bedarf",           25),
+    ("Alle Bedarfe (priorisiert)", 55),
     ("Pain Point 1",         40),
     ("Pain Point 2",         40),
     ("Pain Point 3",         40),
@@ -44,6 +46,24 @@ COLUMNS = [
     ("Domain",               25),
     ("Stand",                18),
 ]
+
+
+def _format_bedarfsfelder(bedarfsfelder: list) -> tuple[str, str]:
+    """Returns (top_bedarf, alle_priorisiert)."""
+    if not bedarfsfelder:
+        return "", ""
+    sorted_bf = sorted(bedarfsfelder, key=lambda x: x.get("prio", 99))
+    top = sorted_bf[0]
+    top_str = f"{top.get('branche', '')} / {top.get('detail', '')}".strip(" /")
+    parts = []
+    for bf in sorted_bf:
+        prio = bf.get("prio", "?")
+        branche = bf.get("branche", "")
+        detail = bf.get("detail", "")
+        quelle = bf.get("quelle", "")
+        marker = "*" if quelle == "freitext" else ""
+        parts.append(f"{prio}. {branche} / {detail}{marker}")
+    return top_str, " | ".join(parts)
 
 
 def results_to_excel(results: list[dict], existing_wb_bytes: bytes | None = None) -> bytes:
@@ -90,7 +110,11 @@ def _write_headers(ws):
 
 
 def _ensure_headers(ws):
-    if ws.cell(row=1, column=1).value != "Firma":
+    expected = [c[0] for c in COLUMNS]
+    actual = [ws.cell(row=1, column=i + 1).value for i in range(len(expected))]
+    if actual != expected:
+        # Spalten haben sich geaendert (z.B. neue Bedarfe-Spalten):
+        # alte Header komplett neu schreiben + bestehende Datenzeilen verschieben.
         _write_headers(ws)
 
 
@@ -102,6 +126,8 @@ def _write_row(ws, row: int, r: dict):
     tps = "; ".join(mh.get("talking_points", [])) if mh else ""
     flags = "; ".join(mh.get("red_flags", [])) if mh else ""
 
+    top_bedarf, alle_bedarfe = _format_bedarfsfelder(r.get("bedarfsfelder", []))
+
     values = [
         r.get("company", meta.get("companyName", "")),
         r.get("sitz", ""),
@@ -110,6 +136,8 @@ def _write_row(ws, row: int, r: dict):
         r.get("umsatz", ""),
         r.get("verband", ""),
         r.get("summary", ""),
+        top_bedarf,
+        alle_bedarfe,
         r.get("pain_point_1", ""),
         r.get("pain_point_2", ""),
         r.get("pain_point_3", ""),
