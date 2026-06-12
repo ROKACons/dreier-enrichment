@@ -303,20 +303,25 @@ import base64
 from pathlib import Path
 
 _assets = Path(__file__).parent / "assets"
-# Fallback-Kette: dreier_logo.png > dreier.png > dreier.svg > inline SVG-Wortmarke
-_logo_html: str
-for fname, mime in [
-    ("dreier_logo.png", "image/png"),
-    ("dreier.png",      "image/png"),
-    ("dreier_logo.jpg", "image/jpeg"),
-    ("dreier_logo.svg", "image/svg+xml"),
-]:
-    fp = _assets / fname
-    if fp.exists():
+# Logo: jedes File in assets/ das mit "dreier" beginnt (case-insensitive),
+# Reihenfolge nach Endung: png > svg > jpg/jpeg > webp.
+_MIME = {".png": "image/png", ".svg": "image/svg+xml",
+         ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp"}
+_logo_html: str = ""
+if _assets.exists():
+    _candidates = sorted(
+        (f for f in _assets.iterdir()
+         if f.is_file()
+         and f.name.lower().startswith("dreier")
+         and f.suffix.lower() in _MIME),
+        key=lambda f: list(_MIME).index(f.suffix.lower()),
+    )
+    if _candidates:
+        fp = _candidates[0]
         b64 = base64.b64encode(fp.read_bytes()).decode()
-        _logo_html = f"<img src='data:{mime};base64,{b64}' alt='Dreier' class='brand-logo'/>"
-        break
-else:
+        _logo_html = f"<img src='data:{_MIME[fp.suffix.lower()]};base64,{b64}' alt='Dreier' class='brand-logo'/>"
+
+if not _logo_html:
     # Inline-SVG-Fallback: "dreier" Wortmarke in Teal (Dreier-Brand-Farbe)
     _logo_html = """
     <svg viewBox='0 0 200 70' class='brand-logo' xmlns='http://www.w3.org/2000/svg' aria-label='Dreier'>
@@ -331,18 +336,14 @@ else:
     </svg>
     """
 
-st.markdown(
-    f"""
-    <div class='roka-brandbar'>
-        {_logo_html}
-        <div class='roka-brand-text'>
-            <div class='roka-brand-title'>DreierFashion4You · <span class='accent'>Firmen Enrichment</span></div>
-            <div class='roka-brand-sub'>Textillogistik · Vertriebsvorbereitung · powered by ROKA Consulting</div>
-        </div>
-    </div>
-    """,
-    unsafe_allow_html=True,
+_brandbar_html = (
+    f"<div class='roka-brandbar'>{_logo_html}"
+    f"<div class='roka-brand-text'>"
+    f"<div class='roka-brand-title'>DreierFashion4You &middot; <span class='accent'>Firmen Enrichment</span></div>"
+    f"<div class='roka-brand-sub'>Textillogistik &middot; Vertriebsvorbereitung &middot; powered by ROKA Consulting</div>"
+    f"</div></div>"
 )
+st.markdown(_brandbar_html, unsafe_allow_html=True)
 
 # ─── Sidebar ──────────────────────────────────────────────────────────────────
 with st.sidebar:
