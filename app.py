@@ -92,6 +92,13 @@ _PALETTES = {
         "banner_grid": "rgba(79, 179, 255, 0.06)",
         "pain_bg":     "rgba(18, 121, 190, 0.18)",
         "pain_border": "rgba(79, 179, 255, 0.5)",
+        "input_bg":    "#0F1A2E",
+        "input_text":  "#E6EDF7",
+        "input_border":"rgba(79, 179, 255, 0.25)",
+        "btn2_bg":     "#0F1A2E",
+        "btn2_text":   "#E6EDF7",
+        "btn2_border": "rgba(79, 179, 255, 0.3)",
+        "expander_bg": "#0F1A2E",
     },
     "light": {
         "bg":          "linear-gradient(180deg, #F4F8FD 0%, #FFFFFF 100%)",
@@ -108,6 +115,13 @@ _PALETTES = {
         "banner_grid": "rgba(18, 121, 190, 0.08)",
         "pain_bg":     "rgba(18, 121, 190, 0.10)",
         "pain_border": "rgba(18, 121, 190, 0.45)",
+        "input_bg":    "#FFFFFF",
+        "input_text":  "#0B1220",
+        "input_border":"rgba(18, 121, 190, 0.30)",
+        "btn2_bg":     "#FFFFFF",
+        "btn2_text":   "#0B1220",
+        "btn2_border": "rgba(18, 121, 190, 0.40)",
+        "expander_bg": "#FFFFFF",
     },
 }
 P = _PALETTES[_THEME]
@@ -153,18 +167,83 @@ st.markdown(f"""
   .stMarkdown, .stMarkdown p, label, .stCaption,
   div[data-testid="stMarkdownContainer"] p {{ color: {P['text']}; }}
 
-  /* Buttons */
+  /* Buttons - Primary */
   .stButton > button[kind="primary"] {{
-    background-color: {P['primary']}; border-color: {P['primary']}; color: #FFFFFF;
+    background-color: {P['primary']} !important;
+    border-color: {P['primary']} !important;
+    color: #FFFFFF !important;
   }}
   .stButton > button[kind="primary"]:hover {{
-    background-color: {P['accent']}; border-color: {P['accent']};
+    background-color: {P['accent']} !important;
+    border-color: {P['accent']} !important;
+  }}
+  /* Buttons - Secondary (Default) */
+  .stButton > button:not([kind="primary"]),
+  .stDownloadButton > button {{
+    background-color: {P['btn2_bg']} !important;
+    color: {P['btn2_text']} !important;
+    border: 1px solid {P['btn2_border']} !important;
+  }}
+  .stButton > button:not([kind="primary"]):hover,
+  .stDownloadButton > button:hover {{
+    border-color: {P['accent']} !important;
+    color: {P['accent']} !important;
+  }}
+
+  /* Inputs (Text/Number/TextArea/Selectbox) */
+  .stTextInput input, .stNumberInput input, .stTextArea textarea,
+  .stTextInput > div > div > input,
+  .stNumberInput > div > div > input,
+  div[data-baseweb="input"] input,
+  div[data-baseweb="textarea"] textarea,
+  div[data-baseweb="select"] > div {{
+    background-color: {P['input_bg']} !important;
+    color: {P['input_text']} !important;
+    border-color: {P['input_border']} !important;
+  }}
+  .stTextInput label, .stNumberInput label, .stTextArea label,
+  .stSelectbox label, .stMultiSelect label, .stCheckbox label,
+  .stRadio label, .stFileUploader label {{
+    color: {P['text']} !important;
+  }}
+
+  /* Expander */
+  div[data-testid="stExpander"] {{
+    background-color: {P['expander_bg']} !important;
+    border: 1px solid {P['border']} !important;
+    border-radius: 6px;
+  }}
+  div[data-testid="stExpander"] summary,
+  div[data-testid="stExpander"] details > summary p {{
+    color: {P['text']} !important;
+  }}
+
+  /* Metric */
+  div[data-testid="stMetricValue"] {{ color: {P['text']} !important; }}
+  div[data-testid="stMetricLabel"] {{ color: {P['muted']} !important; }}
+
+  /* DataFrame / DataEditor */
+  div[data-testid="stDataFrame"], div[data-testid="stDataEditor"] {{
+    background-color: {P['card']} !important;
+    border-radius: 6px;
+  }}
+
+  /* Alerts (info/success/warning/error) — Texte dunkler halten in Light */
+  div[data-testid="stAlert"] {{ color: {P['text']} !important; }}
+
+  /* File-Uploader */
+  div[data-testid="stFileUploader"] section {{
+    background-color: {P['input_bg']} !important;
+    border: 1px dashed {P['input_border']} !important;
+    color: {P['text']} !important;
   }}
 
   /* Tabs */
   .stTabs [data-baseweb="tab-list"] {{ gap: 4px; }}
   .stTabs [data-baseweb="tab"] {{
-    background-color: {P['tab_bg']}; border-radius: 6px 6px 0 0;
+    background-color: {P['tab_bg']} !important;
+    color: {P['text']} !important;
+    border-radius: 6px 6px 0 0;
   }}
   .stTabs [aria-selected="true"] {{
     background-color: {P['tab_active']} !important; color: {P['accent']} !important;
@@ -190,7 +269,8 @@ st.markdown(f"""
     border-radius: 6px;
     margin-bottom: 22px;
   }}
-  .roka-brandbar .roka-logo {{ height: 56px; width: auto; object-fit: contain; flex-shrink: 0; }}
+  .roka-brandbar .roka-logo,
+  .roka-brandbar .brand-logo {{ height: 56px; width: auto; object-fit: contain; flex-shrink: 0; }}
   .roka-brandbar .roka-brand-text {{ display: flex; flex-direction: column; gap: 4px; }}
   .roka-brandbar .roka-brand-title {{
     font-size: 1.45rem; font-weight: 700; color: {P['text']};
@@ -218,17 +298,43 @@ if "log"                 not in st.session_state: st.session_state.log = []
 if "excel_cache"         not in st.session_state: st.session_state.excel_cache = None
 if "show_inline_results" not in st.session_state: st.session_state.show_inline_results = False
 
-# ─── Header mit ROKA-Logo ─────────────────────────────────────────────────────
+# ─── Header mit Kunden-Logo ───────────────────────────────────────────────────
 import base64
 from pathlib import Path
 
-_logo_path = Path(__file__).parent / "assets" / "ROKA Logo.png"
-_logo_b64 = base64.b64encode(_logo_path.read_bytes()).decode() if _logo_path.exists() else ""
+_assets = Path(__file__).parent / "assets"
+# Fallback-Kette: dreier_logo.png > dreier.png > dreier.svg > inline SVG-Wortmarke
+_logo_html: str
+for fname, mime in [
+    ("dreier_logo.png", "image/png"),
+    ("dreier.png",      "image/png"),
+    ("dreier_logo.jpg", "image/jpeg"),
+    ("dreier_logo.svg", "image/svg+xml"),
+]:
+    fp = _assets / fname
+    if fp.exists():
+        b64 = base64.b64encode(fp.read_bytes()).decode()
+        _logo_html = f"<img src='data:{mime};base64,{b64}' alt='Dreier' class='brand-logo'/>"
+        break
+else:
+    # Inline-SVG-Fallback: "dreier" Wortmarke in Teal (Dreier-Brand-Farbe)
+    _logo_html = """
+    <svg viewBox='0 0 200 70' class='brand-logo' xmlns='http://www.w3.org/2000/svg' aria-label='Dreier'>
+      <g fill='none' stroke='#D9434E' stroke-width='2'>
+        <circle cx='42'  cy='38' r='17'/>
+        <circle cx='72'  cy='38' r='17'/>
+        <circle cx='102' cy='38' r='17'/>
+      </g>
+      <text x='100' y='52' text-anchor='middle'
+            font-family='Helvetica, Arial, sans-serif' font-weight='800'
+            font-size='42' fill='#2DAEA8' letter-spacing='-1'>dreier</text>
+    </svg>
+    """
 
 st.markdown(
     f"""
     <div class='roka-brandbar'>
-        <img src='data:image/png;base64,{_logo_b64}' alt='ROKA Consulting' class='roka-logo'/>
+        {_logo_html}
         <div class='roka-brand-text'>
             <div class='roka-brand-title'>DreierFashion4You · <span class='accent'>Firmen Enrichment</span></div>
             <div class='roka-brand-sub'>Textillogistik · Vertriebsvorbereitung · powered by ROKA Consulting</div>
