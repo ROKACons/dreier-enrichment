@@ -24,6 +24,12 @@ Analysiere die Rohdaten zur Firma **{company}** und erstelle ein strukturiertes 
 - Verwende NIE Superlative wie "Marktführer", "grösste", "führende" – ausser sie stehen wörtlich in den Quellen.
 - Wenn eine Info fehlt, schreibe "Nicht bekannt" – NIEMALS erfinden.
 - Jeder Pain Point muss aus einer konkreten Quelle stammen (News, Stelleninserat, Perplexity).
+
+⏱️  ZEITFILTER – HARTE REGEL:
+- Verwende AUSSCHLIESSLICH Informationen, die nicht aelter als **{max_age_months} Monate** sind.
+- Wenn ein Item in den Rohdaten aelter ist (Datum vor Cut-off oder erkennbar veraltet), IGNORIERE es vollstaendig fuer Pain Points / Summary / Signale.
+- Erwaehne niemals Ereignisse vor dem Cut-off, auch wenn sie in den Quellen stehen.
+- Bei Unsicherheit ueber das Alter: lieber weglassen als verwenden.
 ════════════════════════════════════════════════════════════════
 
 === STAMMDATEN (ZEFIX Handelsregister) ===
@@ -32,7 +38,7 @@ Analysiere die Rohdaten zur Firma **{company}** und erstelle ein strukturiertes 
 === UNTERNEHMENS-OVERVIEW (Perplexity) ===
 {perplexity}
 
-=== AKTUELLE NEWS ({news_count} Artikel, max. 60 Tage) ===
+=== AKTUELLE NEWS ({news_count} Artikel, max. {max_age_months} Monate) ===
 {news}
 
 === BAU & EXPANSION ({construction_count} Treffer) ===
@@ -51,8 +57,14 @@ Analysiere die Rohdaten zur Firma **{company}** und erstelle ein strukturiertes 
 Folgende Branche/Detail-Kombinationen bietet DreierFashion4You an:
 {bedarfsfelder_matrix}
 
-REGELN BEDARFSFELDER:
-- Identifiziere aus den Rohdaten 1–5 konkrete Bedarfsfelder bei dieser Firma.
+REGELN BEDARFSFELDER (sehr wichtig):
+- Bedarfsfelder beziehen sich AUSSCHLIESSLICH auf das **Kerngeschaeft / Geschaeftsfeld** der Firma {company}
+  (was sie verkauft, produziert, vertreibt, lagert, transportiert).
+- NIEMALS auf Personalbedarf, Recruiting, offene Stellen, Jobs oder HR-Themen bauen.
+- Stellenanzeigen duerfen NUR als INDIREKTES Indiz fuer Geschaeftsfeld-Bedarf dienen
+  (z.B. "neuer Logistikleiter gesucht" → Indiz fuer Standort-/Volumen-Ausbau im Kerngeschaeft),
+  aber das Bedarfsfeld selbst beschreibt immer die operative Logistik-Dienstleistung, nicht die Stelle.
+- Identifiziere 1–5 konkrete Bedarfsfelder beim Kerngeschaeft dieser Firma.
 - Branche MUSS aus der obigen Matrix stammen (exakte Schreibweise!).
 - Detail SOLL primaer aus der Matrix kommen (Quelle "matrix"); wenn KEIN passendes Detail in der Matrix existiert, beschreibe das Bedarfsfeld in eigenen Worten (Quelle "freitext").
 - Priorisiere absteigend: prio=1 = staerkster/dringendster Bedarf.
@@ -118,7 +130,8 @@ REGELN:
 
 
 def analyse(company_name: str, zefix: dict, perplexity: dict,
-            serp: dict, scraped: list, bedarfsfelder_matrix: str = "") -> dict:
+            serp: dict, scraped: list, bedarfsfelder_matrix: str = "",
+            max_age_months: int = 6) -> dict:
     prompt = PROMPT_TEMPLATE.format(
         company=company_name,
         zefix=json.dumps(zefix, ensure_ascii=False, indent=2),
@@ -132,6 +145,7 @@ def analyse(company_name: str, zefix: dict, perplexity: dict,
         verband=f"{serp.get('verband_status','')}\nLinks: {', '.join(serp.get('verband_links',[]))}",
         scraped=json.dumps(scraped, ensure_ascii=False, indent=2),
         bedarfsfelder_matrix=bedarfsfelder_matrix or "(Keine Matrix konfiguriert – LLM waehlt frei.)",
+        max_age_months=max(1, min(int(max_age_months), 24)),
     )
 
     message = _client.messages.create(

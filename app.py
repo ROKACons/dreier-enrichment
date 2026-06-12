@@ -71,105 +71,143 @@ def _check_login() -> bool:
 if not _check_login():
     st.stop()
 
-# ─── ROKA Brand CSS – Dark Mode ───────────────────────────────────────────────
-st.markdown("""
+# ─── Theme-State (Hell/Dunkel) ────────────────────────────────────────────────
+if "theme" not in st.session_state:
+    st.session_state.theme = "dark"
+_THEME = st.session_state.theme  # "dark" | "light"
+
+_PALETTES = {
+    "dark": {
+        "bg":          "radial-gradient(ellipse at top left, #102036 0%, #0B1220 60%, #060B17 100%)",
+        "card":        "#0F1A2E",
+        "sidebar":     "linear-gradient(180deg, #0F1A2E 0%, #0B1220 100%)",
+        "text":        "#FFFFFF",
+        "muted":       "#8FA3BF",
+        "border":      "rgba(79, 179, 255, 0.18)",
+        "accent":      "#4FB3FF",
+        "primary":     "#1279BE",
+        "tab_bg":      "rgba(255,255,255,0.04)",
+        "tab_active":  "rgba(18, 121, 190, 0.25)",
+        "banner":      "linear-gradient(135deg, #102036 0%, #0B1A2E 60%, #060B17 100%)",
+        "banner_grid": "rgba(79, 179, 255, 0.06)",
+        "pain_bg":     "rgba(18, 121, 190, 0.18)",
+        "pain_border": "rgba(79, 179, 255, 0.5)",
+    },
+    "light": {
+        "bg":          "linear-gradient(180deg, #F4F8FD 0%, #FFFFFF 100%)",
+        "card":        "#FFFFFF",
+        "sidebar":     "linear-gradient(180deg, #F0F6FC 0%, #FFFFFF 100%)",
+        "text":        "#0B1220",
+        "muted":       "#4A5A73",
+        "border":      "rgba(18, 121, 190, 0.25)",
+        "accent":      "#1279BE",
+        "primary":     "#1279BE",
+        "tab_bg":      "rgba(18, 121, 190, 0.06)",
+        "tab_active":  "rgba(18, 121, 190, 0.15)",
+        "banner":      "linear-gradient(135deg, #DCEBFA 0%, #F4F8FD 60%, #FFFFFF 100%)",
+        "banner_grid": "rgba(18, 121, 190, 0.08)",
+        "pain_bg":     "rgba(18, 121, 190, 0.10)",
+        "pain_border": "rgba(18, 121, 190, 0.45)",
+    },
+}
+P = _PALETTES[_THEME]
+
+# ─── Brand-CSS (Theme-aware) ──────────────────────────────────────────────────
+st.markdown(f"""
 <style>
-  /* ROKA Brand: #1279BE primary, #4FB3FF accent, dunkler Hintergrund #0B1220 */
+  /* Streamlit-Header/Toolbar komplett ausblenden */
+  header[data-testid="stHeader"] {{ display: none !important; }}
+  div[data-testid="stToolbar"]    {{ display: none !important; }}
+  #MainMenu                       {{ visibility: hidden !important; }}
+  footer                          {{ visibility: hidden !important; }}
+  .stDeployButton                 {{ display: none !important; }}
 
-  /* Streamlit-Header/Toolbar komplett ausblenden (Share/Star/Edit/GitHub/Menu) */
-  header[data-testid="stHeader"] { display: none !important; }
-  div[data-testid="stToolbar"]    { display: none !important; }
-  #MainMenu                       { visibility: hidden !important; }
-  footer                          { visibility: hidden !important; }
-  .stDeployButton                 { display: none !important; }
+  .stApp {{ background: {P['bg']} !important; }}
+  .main .block-container {{ padding-top: 1.2rem !important; max-width: 1200px; }}
 
-  /* Globaler Dark-Mode-Hintergrund */
-  .stApp {
-    background: radial-gradient(ellipse at top left, #102036 0%, #0B1220 60%, #060B17 100%) !important;
-  }
-  .main .block-container {
-    padding-top: 1.2rem !important;
-    max-width: 1200px;
-  }
-
-  /* Result-Cards dunkel */
-  .result-card {
-    border-left: 5px solid #1279BE;
+  /* Result-Cards */
+  .result-card {{
+    border-left: 5px solid {P['primary']};
     padding: 0.8rem 1.2rem;
     margin-bottom: 0.8rem;
-    background-color: #0F1A2E;
+    background-color: {P['card']};
     border-radius: 4px;
-  }
+  }}
 
   /* Pain-Tags */
-  .pain-tag {
+  .pain-tag {{
     display: inline-block;
     border-radius: 6px;
     padding: 4px 12px;
     margin: 3px 4px 3px 0;
     font-size: 0.85rem;
-    background-color: rgba(18, 121, 190, 0.18);
-    border: 1px solid rgba(79, 179, 255, 0.5);
-    color: #4FB3FF;
+    background-color: {P['pain_bg']};
+    border: 1px solid {P['pain_border']};
+    color: {P['accent']};
     font-weight: 500;
-  }
+  }}
 
-  /* Headings: weiß mit blauem Akzent */
-  h1, h2, h3 { color: #FFFFFF !important; font-weight: 600 !important; }
-  h1 .accent, h2 .accent { color: #4FB3FF !important; }
+  h1, h2, h3 {{ color: {P['text']} !important; font-weight: 600 !important; }}
+  h1 .accent, h2 .accent, .accent {{ color: {P['accent']} !important; }}
+
+  .stMarkdown, .stMarkdown p, label, .stCaption,
+  div[data-testid="stMarkdownContainer"] p {{ color: {P['text']}; }}
 
   /* Buttons */
-  .stButton > button[kind="primary"] {
-    background-color: #1279BE;
-    border-color: #1279BE;
-    color: #FFFFFF;
-  }
-  .stButton > button[kind="primary"]:hover {
-    background-color: #4FB3FF;
-    border-color: #4FB3FF;
-  }
+  .stButton > button[kind="primary"] {{
+    background-color: {P['primary']}; border-color: {P['primary']}; color: #FFFFFF;
+  }}
+  .stButton > button[kind="primary"]:hover {{
+    background-color: {P['accent']}; border-color: {P['accent']};
+  }}
 
   /* Tabs */
-  .stTabs [data-baseweb="tab-list"] { gap: 4px; }
-  .stTabs [data-baseweb="tab"] {
-    background-color: rgba(255,255,255,0.04);
-    border-radius: 6px 6px 0 0;
-  }
-  .stTabs [aria-selected="true"] {
-    background-color: rgba(18, 121, 190, 0.25) !important;
-    color: #4FB3FF !important;
-  }
+  .stTabs [data-baseweb="tab-list"] {{ gap: 4px; }}
+  .stTabs [data-baseweb="tab"] {{
+    background-color: {P['tab_bg']}; border-radius: 6px 6px 0 0;
+  }}
+  .stTabs [aria-selected="true"] {{
+    background-color: {P['tab_active']} !important; color: {P['accent']} !important;
+  }}
 
   /* Sidebar */
-  section[data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #0F1A2E 0%, #0B1220 100%) !important;
-    border-right: 1px solid rgba(79, 179, 255, 0.15);
-  }
+  section[data-testid="stSidebar"] {{
+    background: {P['sidebar']} !important;
+    border-right: 1px solid {P['border']};
+  }}
 
-  /* ROKA-Logo-Bar oben */
-  .roka-brandbar {
-    display: flex;
-    align-items: center;
-    padding: 8px 4px 18px 4px;
-    border-bottom: 1px solid rgba(79, 179, 255, 0.18);
-    margin-bottom: 18px;
-  }
-  .roka-brandbar .roka-logo {
-    height: 64px;
-    width: auto;
-    object-fit: contain;
-  }
+  /* ─── Brand-Banner im Eventkalender-Stil ─── */
+  .roka-brandbar {{
+    display: flex; align-items: center; gap: 18px;
+    padding: 18px 22px;
+    background: {P['banner']};
+    background-image:
+      linear-gradient(0deg, transparent 24%, {P['banner_grid']} 25%, {P['banner_grid']} 26%, transparent 27%, transparent 74%, {P['banner_grid']} 75%, {P['banner_grid']} 76%, transparent 77%),
+      linear-gradient(90deg, transparent 24%, {P['banner_grid']} 25%, {P['banner_grid']} 26%, transparent 27%, transparent 74%, {P['banner_grid']} 75%, {P['banner_grid']} 76%, transparent 77%),
+      {P['banner']};
+    background-size: 40px 40px, 40px 40px, 100% 100%;
+    border: 1px solid {P['border']};
+    border-radius: 6px;
+    margin-bottom: 22px;
+  }}
+  .roka-brandbar .roka-logo {{ height: 56px; width: auto; object-fit: contain; flex-shrink: 0; }}
+  .roka-brandbar .roka-brand-text {{ display: flex; flex-direction: column; gap: 4px; }}
+  .roka-brandbar .roka-brand-title {{
+    font-size: 1.45rem; font-weight: 700; color: {P['text']};
+    letter-spacing: 0.2px; line-height: 1.15;
+  }}
+  .roka-brandbar .roka-brand-title .accent {{ color: {P['accent']}; }}
+  .roka-brandbar .roka-brand-sub {{
+    font-size: 0.78rem; color: {P['accent']};
+    letter-spacing: 2.5px; text-transform: uppercase; font-weight: 600;
+  }}
 
-  /* ROKA-Footer */
-  .roka-footer {
-    text-align: center;
-    color: #8FA3BF;
-    font-size: 0.8rem;
-    padding: 1.5rem 1rem;
-    border-top: 1px solid rgba(79, 179, 255, 0.15);
-    margin-top: 3rem;
-  }
-  .roka-footer a { color: #4FB3FF !important; }
+  /* Footer */
+  .roka-footer {{
+    text-align: center; color: {P['muted']}; font-size: 0.8rem;
+    padding: 1.5rem 1rem; border-top: 1px solid {P['border']}; margin-top: 3rem;
+  }}
+  .roka-footer a {{ color: {P['accent']} !important; }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -191,11 +229,10 @@ st.markdown(
     f"""
     <div class='roka-brandbar'>
         <img src='data:image/png;base64,{_logo_b64}' alt='ROKA Consulting' class='roka-logo'/>
-    </div>
-    <h1 style='margin:0 0 4px 0;'>Firmen News &amp; Daten <span class='accent'>Enrichment</span></h1>
-    <div style='color:#8FA3BF;font-size:0.95rem;margin-bottom:18px;'>
-        DreierFashion4You · Vertriebsvorbereitung · powered by
-        <a href='https://rokaconsulting.ch' style='color:#4FB3FF;text-decoration:none;'>ROKA Consulting</a>
+        <div class='roka-brand-text'>
+            <div class='roka-brand-title'>DreierFashion4You · <span class='accent'>Firmen Enrichment</span></div>
+            <div class='roka-brand-sub'>Textillogistik · Vertriebsvorbereitung · powered by ROKA Consulting</div>
+        </div>
     </div>
     """,
     unsafe_allow_html=True,
@@ -209,7 +246,59 @@ with st.sidebar:
             for k in ("authenticated", "display_name", "login_user", "login_pw"):
                 st.session_state.pop(k, None)
             st.rerun()
-        st.divider()
+
+    # ── Hell/Dunkel-Toggle ───────────────────────────────────────────────
+    _theme_label = "☀️ Hell" if _THEME == "dark" else "🌙 Dunkel"
+    if st.button(f"{_theme_label}-Modus", key="theme_toggle", use_container_width=True):
+        st.session_state.theme = "light" if _THEME == "dark" else "dark"
+        st.rerun()
+    st.divider()
+
+    # ── Recherche-Einstellungen ──────────────────────────────────────────
+    st.markdown("### 🔎 Recherche")
+    max_age_months = st.number_input(
+        "Max. Alter Informationen (Monate)",
+        min_value=1, max_value=24, value=st.session_state.get("max_age_months", 6),
+        step=1, key="max_age_months",
+        help="News, Bau- und Verbandstreffer älter als dieser Wert werden ignoriert.",
+    )
+
+    with st.expander("💼 Jobsuche-Einstellungen", expanded=False):
+        job_enabled = st.checkbox(
+            "Jobsuche aktiv",
+            value=st.session_state.get("job_enabled", True),
+            key="job_enabled",
+            help="Wenn deaktiviert, werden keine Stellenanzeigen gesucht.",
+        )
+        job_max_age = st.number_input(
+            "Max. Alter Stellenanzeigen (Monate)",
+            min_value=1, max_value=12,
+            value=st.session_state.get("job_max_age", 3),
+            step=1, key="job_max_age",
+            disabled=not job_enabled,
+        )
+        job_keywords_str = st.text_input(
+            "Suchbegriffe (kommagetrennt)",
+            value=st.session_state.get(
+                "job_keywords_str",
+                "Logistik, Supply Chain, Operations, CEO, CFO, COO, CIO",
+            ),
+            key="job_keywords_str",
+            disabled=not job_enabled,
+            help="Treffer müssen mind. einen dieser Begriffe enthalten.",
+        )
+        st.caption("🛡 Quellen-Filter: nur Treffer, deren Firmenname im Title/Link/Snippet vorkommt, werden übernommen.")
+
+    job_settings = {
+        "enabled": st.session_state.get("job_enabled", True),
+        "keywords": [k.strip() for k in st.session_state.get(
+            "job_keywords_str",
+            "Logistik, Supply Chain, Operations, CEO, CFO, COO, CIO",
+        ).split(",") if k.strip()],
+        "max_age_months": int(st.session_state.get("job_max_age", 3)),
+    }
+
+    st.divider()
 
     # API-Keys nur sichtbar wenn ?admin=1 in URL (für Admin/Support)
     import config
@@ -223,18 +312,11 @@ with st.sidebar:
                 ("Perplexity", config.PERPLEXITY_KEY),
                 ("Anthropic",  config.ANTHROPIC_KEY),
                 ("ZEFIX",      config.ZEFIX_USER),
-                ("SMTP",       config.SMTP_PASS),
             ]:
                 status = "✅" if val else "❌ fehlt"
                 st.write(f"{status} {label}")
 
-    # E-Mail-Versand & Excel-Upload: NUR in Tab 3 (Export), nicht doppelt
-    sidebar_email = ""
-    send_after = False
-    existing_file = None
-
     # ── Notfall-Download immer verfügbar ─────────────────────────────────
-    st.divider()
     _state_partial = storage.load_batch()
     if _state_partial and _state_partial.get("results"):
         st.markdown("**🆘 Notfall-Download**")
@@ -408,7 +490,11 @@ with tab1:
                     progress_bar.progress(overall, text=f"[{_idx+1}/{_total}] {step}")
 
                 try:
-                    result = pipeline.run(raw, progress_callback=_cb)
+                    result = pipeline.run(
+                        raw, progress_callback=_cb,
+                        max_age_months=int(max_age_months),
+                        job_settings=job_settings,
+                    )
                     log_line = f"✅ {parsed_name} – {result.get('totalCount', 0)} Treffer"
                 except Exception as exc:
                     tb = traceback.format_exc()
@@ -457,21 +543,11 @@ with tab1:
             st.session_state.running = False
             st.session_state.show_inline_results = True
 
-            # Finale Excel mit existierender Excel-Datei mergen
-            existing_bytes = existing_file.getvalue() if existing_file else None
+            # Finale Excel (Merge mit bestehender Datei passiert nur via Tab 3 Upload)
             st.session_state.excel_cache = output.results_to_excel(
                 [r for r in st.session_state.results if "_error" not in r] or st.session_state.results,
-                existing_bytes,
+                None,
             )
-
-            # Auto-Mail
-            if send_after and sidebar_email and st.session_state.results:
-                try:
-                    to_list = [e.strip() for e in sidebar_email.split(",") if e.strip()]
-                    output.send_email(to_list, st.session_state.results, st.session_state.excel_cache)
-                    st.success(f"📧 E-Mail gesendet an: {', '.join(to_list)}")
-                except Exception as exc:
-                    st.error(f"E-Mail Fehler: {exc}")
 
         # ── Inline-Ergebnisse direkt in Tab 1 ────────────────────────────────
         if st.session_state.get("show_inline_results") and st.session_state.results:
@@ -522,16 +598,28 @@ with tab1:
             st.markdown("""
 **Schritt 1** – Firmennamen eingeben oder Excel hochladen
 **Schritt 2** – Enrichment starten (dauert ca. 1 Min. pro Firma)
-**Schritt 3** – Ergebnisse ansehen, als Excel herunterladen oder per Mail senden
+**Schritt 3** – Ergebnisse ansehen und als Excel herunterladen (Tab **📤 Export**)
 
 **Was die App recherchiert:**
 - 📰 Aktuelle News & Pressemitteilungen (SerpAPI)
 - 🏗️ Bau- und Expansionspläne
-- 💼 Offene Stellen (Logistik / Supply Chain)
+- 💼 Offene Stellen (Logistik / Supply Chain) – optional, eigene Stichwörter & Zeitrahmen
 - 🏛️ Verbandsmitgliedschaften
 - 🏢 Stammdaten (ZEFIX Handelsregister via Firecrawl)
-- 🤖 KI-Analyse: 3 belegte Pain Points (Claude)
-- 🎯 **Miller-Heiman Vertriebsbriefing** (Buying Influences, Talking Points, Red Flags)
+- 🤖 KI-Analyse: 3 belegte Pain Points + Miller-Heiman Vertriebsbriefing (Claude)
+
+**🎯 Bedarfsfelder-Matrix (Tab ⚙️ Bedarfsfelder):**
+Du definierst dort selbst, welche **Branchen** und **Detail-Dienstleistungen** Dreier anbietet.
+Die KI erkennt pro Firma 1–5 priorisierte Bedarfsfelder daraus –
+**immer bezogen auf das Kerngeschäft der Firma** (was sie produziert/verkauft/transportiert),
+**niemals auf Personalbedarf, Recruiting oder offene Stellen**.
+Fehlt ein passendes Detail in der Matrix, beschreibt die KI das Feld in eigenen Worten (mit `*` markiert).
+
+**🛡 Zeitfilter & Quellen-Sicherheit:**
+- In der Sidebar legst du fest, wie alt Informationen maximal sein dürfen (Default 6 Monate).
+- Jobsuche kann separat ein-/ausgeschaltet und zeitlich begrenzt werden.
+- Quellen-Validierung: nur Treffer, deren Firmenname tatsächlich in Title/Link/Snippet vorkommt, werden übernommen
+  (verhindert Falschzuordnungen wie "Planzer-Stelle bei Bächli Bergsport").
 """)
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -698,39 +786,17 @@ with tab3:
             st.session_state.results, existing_bytes
         )
 
-        col_dl, col_mail = st.columns(2)
-
-        with col_dl:
-            st.markdown("**📥 Excel herunterladen**")
-            st.download_button(
-                label="Excel herunterladen",
-                data=st.session_state.excel_cache,
-                file_name=f"Enrichment_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                type="primary",
-            )
-            st.caption("Direkt in Teams/SharePoint hochladen oder als Attachment verwenden.")
-
-        with col_mail:
-            st.markdown("**📧 Per Mail senden**")
-            export_mail = st.text_input(
-                "Empfänger (kommagetrennt für mehrere)",
-                key="export_mail_field",
-                placeholder="vertrieb@dreier.ch",
-            )
-            if st.button("Jetzt senden", key="send_mail_btn"):
-                if not export_mail.strip():
-                    st.warning("Bitte Empfänger angeben.")
-                elif not config.SMTP_PASS:
-                    st.warning("⚠️ SMTP-Passwort in Streamlit Secrets noch nicht gesetzt. Bitte Admin kontaktieren.")
-                else:
-                    try:
-                        to_list = [e.strip() for e in export_mail.split(",") if e.strip()]
-                        output.send_email(to_list, st.session_state.results, st.session_state.excel_cache)
-                        st.success(f"✅ Gesendet an {', '.join(to_list)}")
-                    except Exception as exc:
-                        st.error(f"E-Mail-Versand fehlgeschlagen: {exc}")
-                        st.caption("Hinweis: Bei wiederholten Fehlern Admin kontaktieren.")
+        st.markdown("**📥 Excel herunterladen**")
+        st.download_button(
+            label="Excel herunterladen",
+            data=st.session_state.excel_cache,
+            file_name=f"Enrichment_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            type="primary",
+            use_container_width=True,
+        )
+        st.caption("Excel-Datei kann direkt in Teams/SharePoint hochgeladen oder weitergeleitet werden. "
+                   "E-Mail-Versand ist aktuell deaktiviert.")
 
         st.divider()
         st.markdown("**Vorschau**")

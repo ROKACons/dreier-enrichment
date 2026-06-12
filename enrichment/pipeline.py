@@ -4,7 +4,12 @@ from datetime import datetime
 from enrichment import parser, zefix, serp, firecrawl, perplexity, claude, branches_store
 
 
-def run(raw_input: str, progress_callback=None) -> dict:
+def run(
+    raw_input: str,
+    progress_callback=None,
+    max_age_months: int = 6,
+    job_settings: dict | None = None,
+) -> dict:
     """
     Full enrichment pipeline for one company.
     progress_callback(step: str, pct: int) is called at each stage if provided.
@@ -27,8 +32,12 @@ def run(raw_input: str, progress_callback=None) -> dict:
         zefix_data = f_zefix.result()
         perp_data = f_perp.result()
 
-    notify("Google-Suchen laufen (5 parallel) …", 35)
-    serp_data = serp.search_all(name, domain)
+    notify("Google-Suchen laufen (parallel) …", 35)
+    serp_data = serp.search_all(
+        name, domain,
+        max_age_months=max_age_months,
+        job_settings=job_settings,
+    )
 
     notify("Artikel scrapen (Firecrawl) …", 55)
     all_news = serp_data.get("news", []) + serp_data.get("construction", [])
@@ -37,7 +46,10 @@ def run(raw_input: str, progress_callback=None) -> dict:
     notify("Claude analysiert Daten …", 75)
     matrix = branches_store.load_matrix()
     matrix_block = branches_store.matrix_to_prompt_block(matrix)
-    result = claude.analyse(name, zefix_data, perp_data, serp_data, scraped, matrix_block)
+    result = claude.analyse(
+        name, zefix_data, perp_data, serp_data, scraped, matrix_block,
+        max_age_months=max_age_months,
+    )
 
     notify("Fertig.", 100)
     result["_meta"] = {
@@ -50,7 +62,12 @@ def run(raw_input: str, progress_callback=None) -> dict:
     return result
 
 
-def run_batch(company_list: list[str], progress_callback=None) -> list[dict]:
+def run_batch(
+    company_list: list[str],
+    progress_callback=None,
+    max_age_months: int = 6,
+    job_settings: dict | None = None,
+) -> list[dict]:
     """
     Run pipeline for multiple companies sequentially
     (parallel would exceed API rate limits).
@@ -64,7 +81,11 @@ def run_batch(company_list: list[str], progress_callback=None) -> list[dict]:
                 progress_callback(_raw, step, pct, _idx, total)
 
         try:
-            res = run(raw, progress_callback=_cb)
+            res = run(
+                raw, progress_callback=_cb,
+                max_age_months=max_age_months,
+                job_settings=job_settings,
+            )
         except Exception as exc:
             res = {
                 "company": raw,
