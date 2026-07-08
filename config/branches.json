@@ -28,7 +28,14 @@
       "Entsorgung",
       "Verzollung Import/Export",
       "Aufbereitung von Textilien"
-    ]
+    ],
+    "Filialtransport": [
+      "Filialtransporte zwischen Standorten"
+    ],
+    "Crossdock": [
+      "Ware im Crossdocking Verfahren bearbeiten ohne Lagerung"
+    ],
+    "Export": []
   },
-  "updated_at": "2026-06-15"
+  "updated_at": "2026-07-08"
 }
