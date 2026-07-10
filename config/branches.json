@@ -35,7 +35,9 @@
     "Crossdock": [
       "Ware im Crossdocking Verfahren bearbeiten ohne Lagerung"
     ],
-    "Export": []
+    "Export": [
+      "Auslandsendungen"
+    ]
   },
   "updated_at": "2026-07-10"
 }
