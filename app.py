@@ -298,6 +298,13 @@ if "log"                 not in st.session_state: st.session_state.log = []
 if "excel_cache"         not in st.session_state: st.session_state.excel_cache = None
 if "show_inline_results" not in st.session_state: st.session_state.show_inline_results = False
 
+# Safety-Net: falls "running" durch Crash/Reload haengen geblieben ist,
+# aber gar keine aktive Verarbeitung laeuft (Streamlit hat keinen Job-Kontext),
+# zuruecksetzen. Erkennungsheuristik: results zeigen Ergebnisse UND
+# show_inline_results ist True -> kein aktiver Lauf.
+if st.session_state.running and st.session_state.show_inline_results:
+    st.session_state.running = False
+
 # ─── Header mit Kunden-Logo ───────────────────────────────────────────────────
 import base64
 from pathlib import Path
@@ -455,6 +462,29 @@ tab1, tab2, tab3, tab4 = st.tabs([
 # TAB 1 – EINGABE
 # ══════════════════════════════════════════════════════════════════════════════
 with tab1:
+    # ── Reset-Zeile: sichtbar sobald frueherer Lauf existiert ─────────────
+    _has_prev_run = bool(st.session_state.get("results")) or storage.has_unfinished_batch()
+    if _has_prev_run:
+        cA, cB = st.columns([3, 1])
+        with cA:
+            st.caption(
+                f"ℹ️ Letzter Lauf: {len(st.session_state.get('results', []))} Firma(en) "
+                "im Speicher · Ergebnisse bleiben in Tab **📊 Ergebnisse** & **📤 Export** erhalten."
+            )
+        with cB:
+            if st.button("🔄 Neuer Lauf", key="reset_run_btn",
+                         help="Vorherige Ergebnisse verwerfen und mit frischen Firmen starten"):
+                st.session_state.results = []
+                st.session_state.log = []
+                st.session_state.excel_cache = None
+                st.session_state.show_inline_results = False
+                st.session_state.running = False
+                try:
+                    storage.clear_batch()
+                except Exception:
+                    pass
+                st.rerun()
+
     st.subheader("Firmen auswählen")
 
     mode = st.radio(
@@ -655,6 +685,12 @@ with tab1:
                 [r for r in st.session_state.results if "_error" not in r] or st.session_state.results,
                 None,
             )
+
+            # WICHTIG: rerun forciert vollstaendigen Re-Render des Trees.
+            # Sonst bleibt der "Enrichment starten"-Button in seinem letzten
+            # Render-Zustand (disabled=True) haengen bis zur naechsten
+            # User-Interaktion.
+            st.rerun()
 
         # ── Inline-Ergebnisse direkt in Tab 1 ────────────────────────────────
         if st.session_state.get("show_inline_results") and st.session_state.results:
